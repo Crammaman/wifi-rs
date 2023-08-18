@@ -12,3 +12,4 @@ readme = "README.md"
 
 [dependencies]
 tempfile = "3.0.2"
+regex = "1"

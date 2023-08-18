@@ -1,5 +1,6 @@
 use crate::platforms::{Config, WifiError, WifiInterface};
 use std::process::Command;
+use regex::Regex;
 
 #[derive(Debug)]
 pub struct Connection {
@@ -21,6 +22,27 @@ impl Linux {
                 cfg.interface.unwrap_or("wlan0").to_string()
             }),
         }
+    }
+    pub fn available_ssids() -> Result<Vec<String>, WifiError> {
+        let o = Command::new("nmcli")
+            .args(&["-t","dev","wifi","list"])
+            .output()
+            .map_err(|err| WifiError::IoError(err));
+        
+        let text = String::from_utf8_lossy(&o.unwrap().stdout).to_string();
+        let lines = text.split("\n");
+        let mut configs: Vec<String> = vec![];
+        
+        let re = Regex::new(r"^([^:]*):(.*):([^:]*):([^:]*):([^:]*):([^:]*):([^:]*):([^:]*):([^:]*):([^:]*)$").unwrap();
+        for line in lines {
+            let result = re.captures(line);
+            // Skip tailing line and any other un expected lines
+            if result.is_none() { continue }
+            let fields = result.unwrap();
+
+            configs.push(fields[4].to_string());
+        }
+        Ok(configs)
     }
 }
 
